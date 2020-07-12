@@ -60,6 +60,7 @@ const TabNavigator = createBottomTabNavigator({
 class AuthLoadingScreen extends React.Component{
     constructor(){
         super();
+        this.getLaka();
         this.mainAsync();
     }
 
@@ -68,6 +69,28 @@ class AuthLoadingScreen extends React.Component{
         await AsyncStorage.removeItem('flash');
         this.props.navigation.navigate(userToken ? 'App' : 'Auth');
     }
+
+    getLaka = async () => {
+        const result = [];
+        try {
+          let url = 'http://192.168.100.4:8001/api/get_maps';
+          let response = await fetch(url);
+          let json = await response.json();
+          for(const value of json){
+            var long = parseFloat(value.longitude);
+            var lat = parseFloat(value.latitude);
+            console.log(typeof(long));
+            var w = parseInt(value.nilai) * 1000;
+            result.push(
+              {latitude:long, longitude:lat, weight: w}
+            )
+          }
+          await AsyncStorage.setItem('heatmapLaka', JSON.stringify(json));
+        } catch (error) {
+          console.log(error);     
+        }
+        console.log(result);
+      }
 
     render() {
         return (

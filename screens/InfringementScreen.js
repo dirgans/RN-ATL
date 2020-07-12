@@ -31,7 +31,7 @@ export class DataPelanggar extends React.Component {
 
   select2 = async () => {
       try {
-          let url = 'http://192.168.1.17:8000/api/list-pelanggaran';
+          let url = 'http://192.168.100.3:8000/api/list-pelanggaran';
           let response = await fetch(url);
           let json = await response.json();
           await AsyncStorage.setItem('listPelanggaran', JSON.stringify(json));
@@ -55,7 +55,7 @@ export class DataPelanggar extends React.Component {
   submitDataPelanggar = async () => {
     if ( this.state.noKTP.length == 16 || this.state.noKTP.length == 12) {
       this.state.validation = false;
-      return fetch('http://192.168.1.17:8000/api/data-pelanggar',{
+      return fetch('http://192.168.100.3:8000/api/data-pelanggar',{
           method: 'POST',
           headers: {
               'Accept': 'application/json',
@@ -205,7 +205,7 @@ export class DataPelanggar extends React.Component {
       let formData = new FormData();
       formData.append('photo', { uri: result.uri, name: filename, type: type });
 
-      return fetch("http://192.168.1.17:5000/", {
+      return fetch("http://192.168.100.3:5000/", {
         method: 'POST',
         body: formData,
         headers: {
@@ -633,7 +633,7 @@ export class PrintTilang extends React.Component {
         diwakilkan: diwakilkan
       }
     }
-    fetch('http://192.168.1.17:8000/api/data-tilang',{
+    fetch('http://192.168.100.3:8000/api/data-tilang',{
       method: 'POST',
       headers: {
         'Accept': 'application/json',

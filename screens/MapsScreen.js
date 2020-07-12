@@ -8,17 +8,50 @@ import MapView, { Marker, Heatmap } from 'react-native-maps';
 
 
 export default class Dashboard extends React.Component{
-   state = {
-     latitude: 0,
-     longitude: 0
-   }
-  
-   UNSAFE_componentWillMount(){
-     this.findCoordinates();
-   }
+    state = {
+      latitude: 0,
+      longitude: 0,
+      heatmap: [],
+      loadHeatmap: false
+    }
+    
+    UNSAFE_componentWillMount(){
+      this.findCoordinates();
+      this.getLaka();
+      this.render();
+    }
+
+    getLaka = async () => {
+      const {heatmap} = this.state;
+      const result = [];
+      // console.log(heatmap.length);
+      // console.log(heatmap);
+      try {
+        let url = 'http://192.168.100.4:8001/api/get_maps';
+        let response = await fetch(url);
+        let json = await response.json();
+        for(const value of json){
+          var long = parseFloat(value.longitude);
+          var lat = parseFloat(value.latitude);
+          console.log(typeof(long));
+          var w = parseFloat(value.nilai);
+          result.push(
+            {latitude:long, longitude:lat, weight: w}
+          )
+        }
+        this.setState({heatmap: result})
+        if (result.length > 0) {
+          this.setState({loadHeatmap: true});
+          console.log('asdasda');
+        }
+        // console.log(this.state.heatmap.length);
+        // await AsyncStorage.setItem('listPelanggaran', JSON.stringify(json));
+      } catch (error) {
+        console.log(error);     
+      }
+    }
 
     findCoordinates = () => {
-      console.log('asd');
       
       navigator.geolocation.getCurrentPosition(
         position => {
@@ -31,6 +64,9 @@ export default class Dashboard extends React.Component{
      );
     }
     render(){
+      const {heatmap, loadHeatmap} = this.state;
+      console.log(heatmap);
+      console.log(loadHeatmap);
       let points = [
         {latitude:-6.390609, longitude:106.852051, weight: 1000},
         {latitude:-6.377146, longitude:106.831927, weight: 100},
@@ -71,32 +107,21 @@ export default class Dashboard extends React.Component{
         {latitude:50.054217, longitude:19.943289, weight: 1},
         {latitude:50.133333, longitude:19.4, weight: 100}
       ];
-
+      // console.log(typeof(points[0].longitude));
       return (
         <View style={styles.container}>
           {/* <TouchableOpacity onPress={findCoordinates()}>
               <Text style={styles.welcome}>Find My Coords?</Text>
               <Text>Location: {location}</Text>
           </TouchableOpacity> */}
-          <MapView style={styles.mapStyle} initialRegion={{
+          {loadHeatmap?<MapView style={styles.mapStyle} initialRegion={{
             latitude: -6.399103,
             longitude: 106.813332,
             latitudeDelta: 0.2,
             longitudeDelta: 0.2,
             showCompass: true
           }}>
-            {/* <Heatmap
-              points={points}
-              radius={20}
-              opacity={0.7}
-              onZoomRadiusChange={{zoom: [0, 17], radius: [10, 250]}}
-              gradient={{
-                colors: ['rgb(102, 225, 0)', 'rgb(255, 0, 0)'],
-                startPoints: [0.2, 1],
-                colorMapSize: 256, 
-              }}
-            /> */}
-            <Heatmap points={points}
+            <Heatmap points={heatmap}
                          opacity={1}
                          onZoomRadiusChange={{
                              zoom: [0, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17],
@@ -110,6 +135,7 @@ export default class Dashboard extends React.Component{
                          maxIntensity={100}
                          gradientSmoothing={10}
                          heatmapMode={"POINTS_WEIGHT"}/>
+            
             <Marker coordinate={{
               latitude: this.state.latitude,
               longitude: this.state.longitude
@@ -119,7 +145,8 @@ export default class Dashboard extends React.Component{
             title={'My Location'}
             icon={()=><FontAwesome5 name="calendar" size={24} color="#CDCCCE" />}
             />
-          </MapView>
+          </MapView>:<Text style={{fontSize: 12, color: 'black', width: '85%', textAlign: 'left'}}>B</Text>}
+          
         </View>
       )
     }
