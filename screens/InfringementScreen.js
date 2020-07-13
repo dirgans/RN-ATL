@@ -21,17 +21,41 @@ export class DataPelanggar extends React.Component {
     STNK: '',
     SIM: 'A',
     flag: false,
-    validation: false
+    validation: false,
   };
 
   UNSAFE_componentWillMount(){
-    this.findCoordinates();
-    this.select2();  
+    this.select2();
+    this.GET_SPRIN();
   };
+
+  GET_SPRIN = async () => {
+    let token = await AsyncStorage.getItem('userToken');
+    let user = JSON.parse(token);
+    // console.log(user.nrp);
+    let url = 'http://192.168.100.7:8000/api/get-sprin';
+    return fetch(url,{
+          method: 'POST',
+          headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+              nrp: user.nrp,
+          }), 
+      }).then(response => response.json())
+      .then(responseJson=>{
+        console.log(responseJson);
+        AsyncStorage.setItem('suratPerintah', JSON.stringify(responseJson));
+        // this.props.navigation.navigate('Detail');
+      }).catch(error=>{
+        console.log(error);
+    })
+  }
 
   select2 = async () => {
       try {
-          let url = 'http://192.168.100.3:8000/api/list-pelanggaran';
+          let url = 'http://192.168.100.7:8000/api/list-pelanggaran';
           let response = await fetch(url);
           let json = await response.json();
           await AsyncStorage.setItem('listPelanggaran', JSON.stringify(json));
@@ -41,21 +65,10 @@ export class DataPelanggar extends React.Component {
       }
   }
 
-  findCoordinates = () => {
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        const location = [position.coords.latitude, position.coords.longitude];
-        AsyncStorage.setItem('currLoc', JSON.stringify(location));
-      },
-      error => Alert.alert(error.message),
-      {enableHighAccuracy: true, timeout: 20000, maximumAge: 1000}
-   );
-  };
-
   submitDataPelanggar = async () => {
     if ( this.state.noKTP.length == 16 || this.state.noKTP.length == 12) {
       this.state.validation = false;
-      return fetch('http://192.168.100.3:8000/api/data-pelanggar',{
+      return fetch('http://192.168.100.7:8000/api/data-pelanggar',{
           method: 'POST',
           headers: {
               'Accept': 'application/json',
@@ -95,7 +108,7 @@ export class DataPelanggar extends React.Component {
   };
 
   render() {
-    let { STNK, noKTP } = this.state;
+    let { STNK, noKTP, sprin } = this.state;
 
     return (
       <ImageBackground source={require('../assets/bg-login-2.jpg')}
@@ -205,7 +218,7 @@ export class DataPelanggar extends React.Component {
       let formData = new FormData();
       formData.append('photo', { uri: result.uri, name: filename, type: type });
 
-      return fetch("http://192.168.100.3:5000/", {
+      return fetch("http://192.168.100.7:5000/", {
         method: 'POST',
         body: formData,
         headers: {
@@ -241,16 +254,31 @@ export class DetailPelanggaran extends React.Component {
     STNK: false,
     Ranmor: false,
     listPelanggaran: {},
-    chkdPelanggaran: 0
+    chkdPelanggaran: 0,
+    chkdSprin: 0,
+    super: []
   }
   UNSAFE_componentWillMount(){
     this._getDataPelanggar();
     this._listPelanggaran();
   }
 
+  sprinData = []
   _getDataPelanggar = async () => {
     var res = await AsyncStorage.getItem('dataPelanggar');
+    var sprin = await AsyncStorage.getItem('suratPerintah');
     this.setState({ value: JSON.parse(res) });
+    this.setState({ super: JSON.parse(sprin) });
+    var sd = this.state.super;
+
+    for (let i = 0; i < sd.length; i++) {
+      this.sprinData.push({
+        id: sd[i].id,
+        name: sd[i].nomor_surat,
+        checked: false
+      })
+    }
+    console.log(this.sprinData);
   }
 
   mockData = [];
@@ -286,7 +314,9 @@ export class DetailPelanggaran extends React.Component {
     // var lokasi = this.getAddress(coor);
     var pelanggar = this.state.value;
     var chkplg = this.state.chkdPelanggaran;
+    var chkspr = this.state.chkdSprin;
     var pelanggaran = {id: this.mockData[chkplg].id, name: this.mockData[chkplg].name, pasal: this.mockData[chkplg].pasal, denda: this.mockData[chkplg].denda};
+    var sprin = {id: this.sprinData[chkspr].id, name: this.sprinData[chkspr].name};
 
     var sitaan = [
       {key: 'SIM', val: this.state.SIM},
@@ -333,6 +363,10 @@ export class DetailPelanggaran extends React.Component {
         pasal: pelanggaran.pasal,
         denda: pelanggaran.denda,
         sitaan: res.join(', ')
+      },
+      sprin: {
+        id: sprin.id,
+        name: sprin.name
       }
     };
     await AsyncStorage.setItem('formTilang', JSON.stringify(tilang));
@@ -352,8 +386,18 @@ export class DetailPelanggaran extends React.Component {
           val.checked = false;
         }
       }
-      // console.log(val);
-      
+    }
+
+    const checkSprin = (data) => {
+      for (let index = 0; index < this.sprinData.length; index++) {
+        const val = this.sprinData[index];
+        if (val.id == data[0]) {
+          val.checked = true;
+          this.setState({chkdSprin: index});  
+        }else{
+          val.checked = false;
+        }
+      }
     }
 
     // data pelanggar
@@ -386,6 +430,10 @@ export class DetailPelanggaran extends React.Component {
       {key: 'Tahun Registrasi', value: this.state.value.tahun_registrasi},
       {key: 'Berlaku Sampai', value: this.state.value.berlaku_sampai_stnk}
     ];
+
+    var detail_sprin = [
+      {key: 'nomor_surat', value: this.state.super},
+    ]
 
     var return_dp = [], return_dk= [];
 
@@ -492,6 +540,31 @@ export class DetailPelanggaran extends React.Component {
             </ScrollView> 
             {/* detail end */}
 
+            {/* sprin start */}
+            <View style={{padding: 20, paddingTop: 5, width: '100%', borderRadius: 20, paddingHorizontal: 30}}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, color: 'black' }}>Nomor Surat Operasi:</Text>
+              <Select2
+                searchPlaceHolderText='Cari...'
+                isSelectSingle
+                selectButtonText='Pilih'
+                cancelButtonText='Batal'
+                listEmptyTitle='Data tidak ditemukan'
+                style={{ borderRadius: 5}}
+                colorTheme="blue"
+                selectedTitleStyle={{color: 'black'}}
+                popupTitle="Pilih Surat Operasi"
+                title="Pilih Surat Operasi..."
+                data={this.sprinData}
+                onSelect={data => {
+                  checkSprin(data);
+                }}
+                onRemoveItem={data => {
+                  // this.setState({ data })
+                }}
+              />
+            </View>
+            {/* sprin end */}
+
             {/* pasal start */}
             <View style={{padding: 20, paddingTop: 5, width: '100%', backgroundColor: 'rgb(168, 243, 253)', borderRadius: 20, paddingHorizontal: 30}}>
               <Text style={{ fontWeight: 'bold', fontSize: 16, color: 'black' }}>Pelanggaran:</Text>
@@ -591,6 +664,7 @@ export class PrintTilang extends React.Component {
       pelanggar: {},
       pelanggaran: {},
       polisi: {},
+      sprin: {}
     },
     sendiri: false,
     diwakilkan: false,
@@ -623,6 +697,7 @@ export class PrintTilang extends React.Component {
   submitForm = () => {
     const detail = this.state.data;
     const {wakilAlamat, wakilNama, wakilUmur, sendiri, diwakilkan} = this.state;
+    console.log(detail);
     const output = {
       detail: detail,
       wakil: {
@@ -633,7 +708,7 @@ export class PrintTilang extends React.Component {
         diwakilkan: diwakilkan
       }
     }
-    fetch('http://192.168.100.3:8000/api/data-tilang',{
+    fetch('http://192.168.100.7:8000/api/data-tilang',{
       method: 'POST',
       headers: {
         'Accept': 'application/json',

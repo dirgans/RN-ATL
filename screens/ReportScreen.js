@@ -18,7 +18,7 @@ export default class ReportScreen extends React.Component{
   list = [];
   _getListTilang = async () => {
     try {
-      let url = 'http://192.168.100.3:8000/api/list-tilang';
+      let url = 'http://192.168.100.7:8000/api/list-tilang';
       let response = await fetch(url);
       let json = await response.json();
       let arr = json;

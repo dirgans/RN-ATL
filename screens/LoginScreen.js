@@ -17,7 +17,7 @@ export default function LoginScreen({navigation}){
 
     const [modalOpen, setModalOpen] = useState(false);
     const loginAction = async(props) => {
-        return fetch('http://192.168.100.3:8000/api/login',{
+        return fetch('http://192.168.100.7:8000/api/login',{
             method: 'POST',
             headers: {
                 'Accept': 'application/json',
